@@ -42,6 +42,22 @@ docker-compose up
 ```
 and the app should build and start running (after a few minutes when gradle does its job)
 
+## How to deploy
+
+### Bash script
+This project comes with a `deploy.sh` script that can take of the deployment for you. It's not ideal and in my opinion not
+suitable for production. Similar to the rest of this project, the script is a MVP just to get this microservice up and running
+quickly.
+
+The script will get the active/current kubectl context and will attempt to deploy to the active/current context/cluster.
+So make sure to choose the correct context before executing the script (by running `./deploy.sh`). It will also validate whether you have the needed tools installed (`kubectl`, `helm`, `jq`).
+
+### Helm 3
+If for any reason you do not want to use the script to deploy, you can simply run `helm upgrade --install <helm release name> kubernetes/`.
+The `kubectl` context still has to be correct. Make sure you are using Helm 3, because we do not want to deal with installing and maintaining Tiller.
+
+
+Finally, the script will give you the AWS LoadBalancer URL which you can use to call Antaeus API. If that does not happen for any reason, simply run `kubectl get --namespace <namespace> svc tinjis  -o json | jq .status.loadBalancer.ingress[0].hostname`
 ## How we'll test the solution
 
 1. We will use your scripts to deploy both services to our Kubernetes cluster.

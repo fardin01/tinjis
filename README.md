@@ -63,3 +63,42 @@ Finally, the script will give you the AWS LoadBalancer URL which you can use to 
 1. We will use your scripts to deploy both services to our Kubernetes cluster.
 2. Run the pay endpoint on Antaeus to try and pay the invoices using your service.
 3. Fetch all the invoices from Antaeus and confirm that roughly 50% (remember, your app should randomly fail on some of the invoices) of them will have status "PAID".
+
+# Discussion bonus points
+Q: How would a new deployment look like for these services? What kind of tools would you use?  
+A: I think that all microservices need to be deployed in the same way regardless of being a new or legacy
+service. There are multiple tools to use. I will briefly discuss a few of them here. 
+   1. Terraform would be a top candidate for me if it supported CRDs. There is a Kubernetes provider that supports it but it 
+   is not generally available which makes it unsuitable for production environment. 
+   2. Helm is a widely used tool which I have experience with. It does offer some good features but it could be hard to get it 
+      right. After using Helm for ~2 years, I am open to exploring alternatives.
+   3. An alternative that I would like to explore is Pulumi. It has the same concept as Terraform but it is written using
+      a real programming language (Go, Python, etc.). That gives you a real flexibility to do many things that Helm and
+      Terraform do not. Plus, it has an easier learning curve for a software engineer.
+      
+In addition, the deploy pipeline should ideally be integrated with the CI pipeline. If there has been big investments in
+the CI pipeline, then it can, to some extend, dictate how the deploy pipeline looks like. I will be happy to discuss and
+address specific issues/questions.
+
+Q: If a developers needs to push updates to just one of the services, how can we grant that permission without allowing the same developer to deploy any other services running in K8s?  
+A: In situations like this, I usually take a step back and try to look at the problem from a higher level, in an attempt
+to approach the problem differently. Giving developers access to a specific set of pods seems like a strange thing to do so
+my first step would be to understand the problem fully and correctly. Of course no developer should have `sudo` rights or
+be able to look at Kubernetes secret objects, but other than that they should have the freedom to deploy and debug their
+services. 
+
+To directly answer this question, we can combine RBAC and an OIDC provider (such as an LDAP server) to control who can do what
+inside the cluster. One limitation I recently discovered in this case is that `exec` permission on pods cannot be limited to a specific
+set of pods. The lowest level it can be set is the namespace level.
+
+If we have a deploy pipeline in place (using Jenkins, Rundeck, etc.) we can again integrate that to an LDAP server and allow
+the user to trigger/deploy specific jobs based on their LDAP group membership.
+
+Q: How do we prevent other services running in the cluster to talk to your service. Only Antaeus should be able to do it.  
+A: EKS offers a feature called Pod Security Group which is EC2 security groups on pods, allowing admins to specify who can
+talk to who (basically opening ports to specific request origins). However, it appears that Pod Security Group feature [is
+being deprecated](https://docs.aws.amazon.com/eks/latest/userguide/security-groups-for-pods.html) for pods running on EC2 
+nodes and will only be supported on pods running on Fargate:
+> You can only use security groups for pods with pods running on AWS Fargate if your cluster is 1.18 with platform version eks.7 or later, 1.19 with platform version eks.5 or later, or 1.20 or later.
+
+In that case, we might be able to use the networking plugin to define such rules, or use the "native" Network Policies resource. 

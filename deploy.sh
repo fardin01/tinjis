@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # I have both helm2 and helm3 in my PATH, so this variable is to change the binary version in this script easily.
-HELM_BINARY_NAME=helm3
+HELM_BINARY_NAME=helm
 
 function validate_setup() {
   PACKAGES="kubectl ${HELM_BINARY_NAME} jq"
